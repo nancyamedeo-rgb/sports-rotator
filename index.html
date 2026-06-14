@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PGA Rotator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #000;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'DM Mono', 'Courier New', monospace;
+  }
+
+  /* ── Iframe slots ── */
+  .frame-wrap {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+    pointer-events: none;
+  }
+  .frame-wrap.active {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .frame-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+
+  /* ── Progress bar ── */
+  #progress-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(255,255,255,0.5);
+    width: 0%;
+    z-index: 9999;
+    transition: width linear;
+  }
+
+  /* ── Slide indicator dots ── */
+  #dots {
+    position: fixed;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    transition: background 0.3s, transform 0.3s;
+  }
+  .dot.active {
+    background: rgba(255,255,255,0.85);
+    transform: scale(1.3);
+  }
+
+  /* ── Current page label ── */
+  #page-label {
+    position: fixed;
+    bottom: 22px;
+    right: 14px;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+    z-index: 9999;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="frames"></div>
+<div id="progress-bar"></div>
+<div id="dots"></div>
+<div id="page-label"></div>
+
+<script>
+const PAGES = [
+  { url: 'https://nancyamedeo-rgb.github.io/fifa-world-cup-schedule/', label: 'World Cup Schedule' },
+  { url: 'https://nancyamedeo-rgb.github.io/fifa-world-cup-standings/',    label: 'World Cup Standings' },
+  { url: 'https://nancyamedeo-rgb.github.io/fifa-world-cup-bracket/',    label: 'World Cup Bracket' },
+];
+
+const INTERVAL = 45;   // seconds per slide
+const FADE_MS  = 600;  // fade transition duration in ms
+
+let current = 0;
+let timer   = null;
+
+// ── Build iframes ─────────────────────────────────────────────────────────────
+const framesEl = document.getElementById('frames');
+const dotsEl   = document.getElementById('dots');
+
+PAGES.forEach((page, i) => {
+  const wrap = document.createElement('div');
+  wrap.className = 'frame-wrap';
+  wrap.id = `frame-${i}`;
+  const iframe = document.createElement('iframe');
+  iframe.src = page.url;
+  iframe.title = page.label;
+  iframe.setAttribute('allowfullscreen', '');
+  iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
+  wrap.appendChild(iframe);
+  framesEl.appendChild(wrap);
+
+  const dot = document.createElement('div');
+  dot.className = 'dot';
+  dot.id = `dot-${i}`;
+  dotsEl.appendChild(dot);
+});
+
+// ── Progress bar ──────────────────────────────────────────────────────────────
+function startProgress() {
+  const bar = document.getElementById('progress-bar');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  bar.offsetWidth; // force reflow
+  bar.style.transition = `width ${INTERVAL}s linear`;
+  bar.style.width = '100%';
+}
+
+// ── Show a slide ──────────────────────────────────────────────────────────────
+function showSlide(index) {
+  document.getElementById(`frame-${current}`)?.classList.remove('active');
+  document.getElementById(`dot-${current}`)?.classList.remove('active');
+
+  current = index;
+
+  document.getElementById(`frame-${current}`)?.classList.add('active');
+  document.getElementById(`dot-${current}`)?.classList.add('active');
+
+  document.getElementById('page-label').textContent =
+    `${current + 1} / ${PAGES.length}  ·  ${PAGES[current].label}`;
+
+  startProgress();
+}
+
+// ── Auto-advance ──────────────────────────────────────────────────────────────
+function startRotator() {
+  if (timer) clearInterval(timer);
+  timer = setInterval(() => showSlide((current + 1) % PAGES.length), INTERVAL * 1000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+showSlide(0);
+startRotator();
+</script>
+</body>
+</html>
